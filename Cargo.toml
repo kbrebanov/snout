@@ -1,0 +1,10 @@
+[package]
+name = "snout"
+version = "0.1.0"
+authors = ["Kevin Brebanov <kevin.brebanov@gmail.com>"]
+
+[dependencies]
+clap = "2.0.1"
+pcap = "0.5.2"
+serde_json = "0.6.0"
+dns-parser = "0.2.0"
