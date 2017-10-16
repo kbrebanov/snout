@@ -10,105 +10,164 @@ use pnet::packet::{Packet, ethernet, ip, ipv4, tcp, udp};
 use serde_json::{Value, Map, Number};
 use dns_parser::Packet as DnsPacket;
 
+struct EthernetHeader {
+	source: String,
+	destination: String,
+	ethertype: String,
+}
+
+struct Ipv4Header {
+	version: Number,
+	ihl: Number,
+	dscp: Number,
+	ecn: Number,
+	total_length: Number,
+	identification: Number,
+	flags: Number,
+	fragment_offset: Number,
+	ttl: Number,
+	next_level_protocol: String,
+	checksum: Number,
+	source: String,
+	destination: String,
+}
+
+struct TcpHeader {
+	source_port: Number,
+	destination_port: Number,
+	sequence_number: Number,
+	ack_number: Number,
+	data_offset: Number,
+	flags: Number,
+	window_size: Number,
+	checksum: Number,
+	urgent_pointer: Number,
+}
+
+struct UdpHeader {
+	source_port: Number,
+	destination_port: Number,
+	length: Number,
+	checksum: Number,
+}
+
+struct DnsHeader {
+	id: Number,
+	total_questions: Number,
+	total_answer_rrs: Number,
+	total_authority_rrs: Number,
+	total_additional_rrs: Number,
+}
+
 fn parse_ethernet(p: &ethernet::EthernetPacket) -> Map<String, Value> {
-	let source = p.get_source();
-	let destination = p.get_destination();
-	let ethertype = p.get_ethertype();
+    let ethernet_header = EthernetHeader {
+		source: p.get_source().to_string(),
+		destination: p.get_destination().to_string(),
+		ethertype: p.get_ethertype().to_string().to_lowercase(), 	
+    };
 
 	let mut header = Map::new();
-	header.insert("source".to_string(), Value::String(source.to_string()));
-	header.insert("destination".to_string(), Value::String(destination.to_string()));
-	header.insert("type".to_string(), Value::String(ethertype.to_string().to_lowercase()));
+	header.insert("source".to_string(), Value::String(ethernet_header.source));
+	header.insert("destination".to_string(), Value::String(ethernet_header.destination));
+	header.insert("type".to_string(), Value::String(ethernet_header.ethertype));
 
 	header
 }
 
 fn parse_ipv4(p: &ipv4::Ipv4Packet) -> Map<String, Value> {
-	let version = p.get_version();
-	let ihl = p.get_header_length();
-	let dscp = p.get_dscp();
-	let ecn = p.get_ecn();
-	let total_length = p.get_total_length();
-	let identification = p.get_identification();
-	let flags = p.get_flags();
-	let fragment_offset = p.get_fragment_offset();
-	let ttl = p.get_ttl();
-	let next_level_protocol = p.get_next_level_protocol();
-	let checksum = p.get_checksum();
-	let source = p.get_source();
-	let destination = p.get_destination();
+	let ipv4_header = Ipv4Header {
+		version: Number::from(p.get_version()),
+		ihl: Number::from(p.get_header_length()),
+		dscp: Number::from(p.get_dscp()),
+		ecn: Number::from(p.get_ecn()),
+		total_length: Number::from(p.get_total_length()),
+		identification: Number::from(p.get_identification()),
+		flags: Number::from(p.get_flags()),
+		fragment_offset: Number::from(p.get_fragment_offset()),
+		ttl: Number::from(p.get_ttl()),
+		next_level_protocol: p.get_next_level_protocol().to_string().to_lowercase(),
+		checksum: Number::from(p.get_checksum()),
+		source: p.get_source().to_string(),
+		destination: p.get_destination().to_string(),
+	};
 
 	let mut header = Map::new();
-    header.insert("version".to_string(), Value::Number(Number::from(version)));
-    header.insert("ihl".to_string(), Value::Number(Number::from(ihl)));
-    header.insert("dscp".to_string(), Value::Number(Number::from(dscp)));
-    header.insert("ecn".to_string(), Value::Number(Number::from(ecn)));
-    header.insert("total_length".to_string(), Value::Number(Number::from(total_length)));
-    header.insert("identification".to_string(), Value::Number(Number::from(identification)));
-    header.insert("flags.".to_string(), Value::Number(Number::from(flags)));
-    header.insert("fragment_offset".to_string(), Value::Number(Number::from(fragment_offset)));
-    header.insert("ttl".to_string(), Value::Number(Number::from(ttl)));
-    header.insert("protocol".to_string(), Value::String(next_level_protocol.to_string().to_lowercase()));
-    header.insert("checksum".to_string(), Value::Number(Number::from(checksum)));
-    header.insert("source_address".to_string(), Value::String(source.to_string()));
-    header.insert("destination_address".to_string(), Value::String(destination.to_string()));
+    header.insert("version".to_string(), Value::Number(ipv4_header.version));
+    header.insert("ihl".to_string(), Value::Number(ipv4_header.ihl));
+    header.insert("dscp".to_string(), Value::Number(ipv4_header.dscp));
+    header.insert("ecn".to_string(), Value::Number(ipv4_header.ecn));
+    header.insert("total_length".to_string(), Value::Number(ipv4_header.total_length));
+    header.insert("identification".to_string(), Value::Number(ipv4_header.identification));
+    header.insert("flags.".to_string(), Value::Number(ipv4_header.flags));
+    header.insert("fragment_offset".to_string(), Value::Number(ipv4_header.fragment_offset));
+    header.insert("ttl".to_string(), Value::Number(ipv4_header.ttl));
+    header.insert("protocol".to_string(), Value::String(ipv4_header.next_level_protocol));
+    header.insert("checksum".to_string(), Value::Number(ipv4_header.checksum));
+    header.insert("source_address".to_string(), Value::String(ipv4_header.source));
+    header.insert("destination_address".to_string(), Value::String(ipv4_header.destination));
     
 	header
 }
 
 fn parse_tcp(p: &tcp::TcpPacket) -> Map<String, Value> {
-	let source_port = p.get_source();
-	let destination_port = p.get_destination();
-	let sequence_number = p.get_sequence();
-	let ack_number = p.get_acknowledgement();
-	let data_offset = p.get_data_offset();
-	let flags = p.get_flags();
-	let window_size = p.get_window();
-	let checksum = p.get_checksum();
-	let urgent_pointer = p.get_urgent_ptr();
+	let tcp_header = TcpHeader {
+		source_port: Number::from(p.get_source()),
+		destination_port: Number::from(p.get_destination()),
+		sequence_number: Number::from(p.get_sequence()),
+		ack_number: Number::from(p.get_acknowledgement()),
+		data_offset: Number::from(p.get_data_offset()),
+		flags: Number::from(p.get_flags()),
+		window_size: Number::from(p.get_window()),
+		checksum: Number::from(p.get_checksum()),
+		urgent_pointer: Number::from(p.get_urgent_ptr()),
+	};
 
 	let mut header = Map::new();
-	header.insert("source_port".to_string(), Value::String(source_port.to_string()));
-	header.insert("destination_port".to_string(), Value::String(destination_port.to_string()));
-	header.insert("sequence_number".to_string(), Value::Number(Number::from(sequence_number)));
-	header.insert("ack_number".to_string(), Value::Number(Number::from(ack_number)));
-	header.insert("data_offset".to_string(), Value::Number(Number::from(data_offset)));
-	header.insert("flags".to_string(), Value::Number(Number::from(flags)));
-	header.insert("window_size".to_string(), Value::Number(Number::from(window_size)));
-	header.insert("checksum".to_string(), Value::Number(Number::from(checksum)));
-	header.insert("urgent_pointer".to_string(), Value::Number(Number::from(urgent_pointer)));
+	header.insert("source_port".to_string(), Value::Number(tcp_header.source_port));
+	header.insert("destination_port".to_string(), Value::Number(tcp_header.destination_port));
+	header.insert("sequence_number".to_string(), Value::Number(tcp_header.sequence_number));
+	header.insert("ack_number".to_string(), Value::Number(tcp_header.ack_number));
+	header.insert("data_offset".to_string(), Value::Number(tcp_header.data_offset));
+	header.insert("flags".to_string(), Value::Number(tcp_header.flags));
+	header.insert("window_size".to_string(), Value::Number(tcp_header.window_size));
+	header.insert("checksum".to_string(), Value::Number(tcp_header.checksum));
+	header.insert("urgent_pointer".to_string(), Value::Number(tcp_header.urgent_pointer));
 
 	header
 }
 
 fn parse_udp(p: &udp::UdpPacket) -> Map<String, Value> {
-	let source_port = p.get_source();
-	let destination_port = p.get_destination();
-	let length = p.get_length();
-	let checksum = p.get_checksum();
+	let udp_header = UdpHeader {
+		source_port: Number::from(p.get_source()),
+		destination_port: Number::from(p.get_destination()),
+		length: Number::from(p.get_length()),
+		checksum: Number::from(p.get_checksum()),		
+	};
 	        				
 	let mut header = Map::new();
-	header.insert("source_port".to_string(), Value::String(source_port.to_string()));
-	header.insert("destination_port".to_string(), Value::String(destination_port.to_string()));
-	header.insert("length".to_string(), Value::Number(Number::from(length)));
-	header.insert("checksum".to_string(), Value::Number(Number::from(checksum)));
+	header.insert("source_port".to_string(), Value::Number(udp_header.source_port));
+	header.insert("destination_port".to_string(), Value::Number(udp_header.destination_port));
+	header.insert("length".to_string(), Value::Number(udp_header.length));
+	header.insert("checksum".to_string(), Value::Number(udp_header.checksum));
 
 	header
 }
 
 fn parse_dns(p: &DnsPacket) -> Map<String, Value> {
-	let id = p.header.id;
-	let total_questions = p.header.questions;
-	let total_answer_rrs = p.header.answers;
-	let total_authority_rrs = p.header.nameservers;
-	let total_additional_rrs = p.header.additional;	
+	let dns_header = DnsHeader {
+		id: Number::from(p.header.id),
+		total_questions: Number::from(p.header.questions),
+		total_answer_rrs: Number::from(p.header.answers),
+		total_authority_rrs: Number::from(p.header.nameservers),
+		total_additional_rrs: Number::from(p.header.additional),		
+	};	
 
 	let mut header = Map::new();
-	header.insert("id".to_string(), Value::Number(Number::from(id)));
-	header.insert("total_questions".to_string(), Value::Number(Number::from(total_questions)));
-	header.insert("total_answer_rrs".to_string(), Value::Number(Number::from(total_answer_rrs)));
-	header.insert("total_authority_rrs".to_string(), Value::Number(Number::from(total_authority_rrs)));
-	header.insert("total_additional_rrs".to_string(), Value::Number(Number::from(total_additional_rrs)));
+	header.insert("id".to_string(), Value::Number(dns_header.id));
+	header.insert("total_questions".to_string(), Value::Number(dns_header.total_questions));
+	header.insert("total_answer_rrs".to_string(), Value::Number(dns_header.total_answer_rrs));
+	header.insert("total_authority_rrs".to_string(), Value::Number(dns_header.total_authority_rrs));
+	header.insert("total_additional_rrs".to_string(), Value::Number(dns_header.total_additional_rrs));
 
 	header
 }
