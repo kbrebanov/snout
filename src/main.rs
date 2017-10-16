@@ -2,11 +2,13 @@ extern crate clap;
 extern crate pcap;
 extern crate pnet;
 extern crate serde_json;
+extern crate dns_parser;
 
 use clap::{Arg, App};
 use pcap::Capture;
 use pnet::packet::{Packet, ethernet, ip, ipv4, tcp, udp};
 use serde_json::{Value, Map, Number};
+use dns_parser::Packet as DnsPacket;
 
 fn parse_ethernet(p: &ethernet::EthernetPacket) -> Map<String, Value> {
 	let source = p.get_source();
@@ -16,7 +18,7 @@ fn parse_ethernet(p: &ethernet::EthernetPacket) -> Map<String, Value> {
 	let mut header = Map::new();
 	header.insert("source".to_string(), Value::String(source.to_string()));
 	header.insert("destination".to_string(), Value::String(destination.to_string()));
-	header.insert("type".to_string(), Value::String(ethertype.to_string()));
+	header.insert("type".to_string(), Value::String(ethertype.to_string().to_lowercase()));
 
 	header
 }
@@ -94,6 +96,23 @@ fn parse_udp(p: &udp::UdpPacket) -> Map<String, Value> {
 	header
 }
 
+fn parse_dns(p: &DnsPacket) -> Map<String, Value> {
+	let id = p.header.id;
+	let total_questions = p.header.questions;
+	let total_answer_rrs = p.header.answers;
+	let total_authority_rrs = p.header.nameservers;
+	let total_additional_rrs = p.header.additional;	
+
+	let mut header = Map::new();
+	header.insert("id".to_string(), Value::Number(Number::from(id)));
+	header.insert("total_questions".to_string(), Value::Number(Number::from(total_questions)));
+	header.insert("total_answer_rrs".to_string(), Value::Number(Number::from(total_answer_rrs)));
+	header.insert("total_authority_rrs".to_string(), Value::Number(Number::from(total_authority_rrs)));
+	header.insert("total_additional_rrs".to_string(), Value::Number(Number::from(total_additional_rrs)));
+
+	header
+}
+
 fn parse_headers(p: pcap::Packet) -> Map<String, Value> {
 	let mut headers = Map::new();
 	    	
@@ -112,11 +131,27 @@ fn parse_headers(p: pcap::Packet) -> Map<String, Value> {
 	        				let tcp_packet = tcp::TcpPacket::new(ipv4_packet.payload()).unwrap();
 	        				let tcp_header = parse_tcp(&tcp_packet);
 	        				headers.insert("tcp".to_string(), Value::Object(tcp_header));
+
+	        				match DnsPacket::parse(tcp_packet.payload()) {
+	        					Ok(dns_packet) => {
+	        						let dns_header = parse_dns(&dns_packet);
+	        					    headers.insert("dns".to_string(), Value::Object(dns_header));
+	        					},
+	        					Err(_) => (),
+	        				}
 	        			},
 	        			ip::IpNextHeaderProtocols::Udp => {
 	        				let udp_packet = udp::UdpPacket::new(ipv4_packet.payload()).unwrap();
 	        				let udp_header = parse_udp(&udp_packet);
 	        				headers.insert("udp".to_string(), Value::Object(udp_header));
+
+	        				match DnsPacket::parse(udp_packet.payload()) {
+	        					Ok(dns_packet) => {
+	        						let dns_header = parse_dns(&dns_packet);
+	        						headers.insert("dns".to_string(), Value::Object(dns_header));
+	        					},
+	        					Err(_) => (),
+	        				}
 	        			},
 	        			_ => (),
 	        		}
@@ -130,13 +165,17 @@ fn parse_headers(p: pcap::Packet) -> Map<String, Value> {
 	headers
 }
 
-fn sniff(interface: &str, promiscuous: bool, snaplen: i32, timeout: i32) {
+fn sniff(interface: &str, promiscuous: bool, snaplen: i32, timeout: i32, filter: &str) {
     let mut capture = Capture::from_device(interface).unwrap()
                       	.promisc(promiscuous)
                         .snaplen(snaplen)
                         .timeout(timeout)
                         .open()
                         .unwrap();
+
+    if !filter.is_empty() {
+    	capture.filter(filter).unwrap();
+    }
 
     while let Ok(packet) = capture.next() {
     	let packet_headers = parse_headers(packet);
@@ -180,6 +219,13 @@ fn main() {
                                 .required(false)
                                 .help("Read timeout in milliseconds")
                                 .takes_value(true))
+                            .arg(Arg::with_name("filter")
+                                 .short("f")
+                                 .long("filter")
+                                 .value_name("FILTER")
+                                 .required(false)
+                                 .help("Berkeley Packet Filter (BPF)")
+                                 .takes_value(true))
                             .get_matches();
 
     let interface = arguments.value_of("interface").unwrap();
@@ -189,6 +235,7 @@ fn main() {
     }
     let snaplen: i32 = arguments.value_of("snaplen").unwrap_or("65535").parse().unwrap();
     let timeout: i32 = arguments.value_of("timeout").unwrap_or("0").parse().unwrap();
+    let filter: &str = arguments.value_of("filter").unwrap_or("");
 
-    sniff(interface, promiscuous, snaplen, timeout);
+    sniff(interface, promiscuous, snaplen, timeout, filter);
 }
