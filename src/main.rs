@@ -5,7 +5,7 @@ use clap::{Arg, App};
 use snout::sniffer;
 
 fn main() {
-	const VERSION: &str = "0.1.0";
+	const VERSION: &str = "0.2.0";
 	const AUTHOR: &str = "Kevin Brebanov <kevin.brebanov@gmail.com>";
 	const ABOUT: &str = "DNS packet sniffer that outputs to JSON";
 	
