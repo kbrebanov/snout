@@ -216,26 +216,20 @@ fn parse_headers(p: pcap::Packet) -> Map<String, Value> {
 	        				let tcp_header = TcpHeader::new(&tcp_packet).to_json_map();
 	        				headers.insert("tcp".to_string(), Value::Object(tcp_header));
 
-	        				match DnsPacket::parse(tcp_packet.payload()) {
-	        					Ok(dns_packet) => {
-	        						let dns_header = DnsHeader::new(&dns_packet).to_json_map();
-	        					    headers.insert("dns".to_string(), Value::Object(dns_header));
-	        					},
-	        					Err(_) => (),
-	        				}
+							if let Ok(dns_packet) = DnsPacket::parse(tcp_packet.payload()) {
+								let dns_header = DnsHeader::new(&dns_packet).to_json_map();
+	        					headers.insert("dns".to_string(), Value::Object(dns_header));
+							}
 	        			},
 	        			ip::IpNextHeaderProtocols::Udp => {
 	        				let udp_packet = udp::UdpPacket::new(ipv4_packet.payload()).unwrap();
 	        				let udp_header = UdpHeader::new(&udp_packet).to_json_map();
 	        				headers.insert("udp".to_string(), Value::Object(udp_header));
 
-	        				match DnsPacket::parse(udp_packet.payload()) {
-	        					Ok(dns_packet) => {
-	        						let dns_header = DnsHeader::new(&dns_packet).to_json_map();
-	        						headers.insert("dns".to_string(), Value::Object(dns_header));
-	        					},
-	        					Err(_) => (),
-	        				}
+							if let Ok(dns_packet) = DnsPacket::parse(udp_packet.payload()) {
+								let dns_header = DnsHeader::new(&dns_packet).to_json_map();
+	        					headers.insert("dns".to_string(), Value::Object(dns_header));
+							}
 	        			},
 	        			_ => (),
 	        		}
