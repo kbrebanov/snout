@@ -1,4 +1,4 @@
-use pnet::packet::ethernet;
+use pnet::packet::ethernet::EthernetPacket;
 use serde_json::{Value, Map};
 
 pub struct EthernetHeader {
@@ -8,7 +8,7 @@ pub struct EthernetHeader {
 }
 
 impl EthernetHeader {
-	pub fn new(p: &ethernet::EthernetPacket) -> EthernetHeader {
+	pub fn new(p: &EthernetPacket) -> EthernetHeader {
 		EthernetHeader {
 			source: p.get_source().to_string(),
 			destination: p.get_destination().to_string(),

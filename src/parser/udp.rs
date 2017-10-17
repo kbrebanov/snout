@@ -1,4 +1,4 @@
-use pnet::packet::udp;
+use pnet::packet::udp::UdpPacket;
 use serde_json::{Value, Map, Number};
 
 pub struct UdpHeader {
@@ -9,7 +9,7 @@ pub struct UdpHeader {
 }
 
 impl UdpHeader {
-	pub fn new(p: &udp::UdpPacket) -> UdpHeader {
+	pub fn new(p: &UdpPacket) -> UdpHeader {
 		UdpHeader {
 			source_port: Number::from(p.get_source()),
 			destination_port: Number::from(p.get_destination()),

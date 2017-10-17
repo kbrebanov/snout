@@ -1,4 +1,4 @@
-use pnet::packet::ipv4;
+use pnet::packet::ipv4::Ipv4Packet;
 use serde_json::{Value, Map, Number};
 
 pub struct Ipv4Header {
@@ -18,7 +18,7 @@ pub struct Ipv4Header {
 }
 
 impl Ipv4Header {
-	pub fn new(p: &ipv4::Ipv4Packet) -> Ipv4Header {
+	pub fn new(p: &Ipv4Packet) -> Ipv4Header {
 		Ipv4Header {
 			version: Number::from(p.get_version()),
 			ihl: Number::from(p.get_header_length()),

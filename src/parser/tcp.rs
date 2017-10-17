@@ -1,4 +1,4 @@
-use pnet::packet::tcp;
+use pnet::packet::tcp::TcpPacket;
 use serde_json::{Value, Map, Number};
 
 pub struct TcpHeader {
@@ -14,7 +14,7 @@ pub struct TcpHeader {
 }
 
 impl TcpHeader {
-	pub fn new(p: &tcp::TcpPacket) -> TcpHeader {
+	pub fn new(p: &TcpPacket) -> TcpHeader {
 		TcpHeader {
 			source_port: Number::from(p.get_source()),
 			destination_port: Number::from(p.get_destination()),
