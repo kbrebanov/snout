@@ -1,4 +1,4 @@
-use pnet::packet::ipv4::Ipv4Packet;
+use pnet::packet::ipv4::{Ipv4Packet, Ipv4Flags};
 use serde_json::{Value, Map, Number};
 
 pub struct Ipv4Header {
@@ -8,7 +8,7 @@ pub struct Ipv4Header {
 	ecn: Number,
 	total_length: Number,
 	identification: Number,
-	flags: Number,
+	flags: Value,
 	fragment_offset: Number,
 	ttl: Number,
 	next_level_protocol: String,
@@ -19,6 +19,16 @@ pub struct Ipv4Header {
 
 impl Ipv4Header {
 	pub fn new(p: &Ipv4Packet) -> Ipv4Header {
+		let flags_number = p.get_flags();
+		let mut flags: Vec<&str> = Vec::new();
+
+		if (flags_number & Ipv4Flags::DontFragment) == Ipv4Flags::DontFragment {
+			flags.push("DF");
+		}
+		if (flags_number & Ipv4Flags::MoreFragments) == Ipv4Flags::MoreFragments {
+			flags.push("MF");
+		}
+
 		Ipv4Header {
 			version: Number::from(p.get_version()),
 			ihl: Number::from(p.get_header_length()),
@@ -26,7 +36,8 @@ impl Ipv4Header {
 			ecn: Number::from(p.get_ecn()),
 			total_length: Number::from(p.get_total_length()),
 			identification: Number::from(p.get_identification()),
-			flags: Number::from(p.get_flags()),
+			flags: Value::from(flags),
+			//flags: Number::from(p.get_flags()),
 			fragment_offset: Number::from(p.get_fragment_offset()),
 			ttl: Number::from(p.get_ttl()),
 			next_level_protocol: p.get_next_level_protocol().to_string().to_lowercase(),
@@ -45,7 +56,8 @@ impl Ipv4Header {
     	header.insert("ecn".to_string(), Value::Number(self.ecn.clone()));
     	header.insert("total_length".to_string(), Value::Number(self.total_length.clone()));
     	header.insert("identification".to_string(), Value::Number(self.identification.clone()));
-    	header.insert("flags.".to_string(), Value::Number(self.flags.clone()));
+		header.insert("flags".to_string(), self.flags.clone());
+    	//header.insert("flags.".to_string(), Value::Number(self.flags.clone()));
     	header.insert("fragment_offset".to_string(), Value::Number(self.fragment_offset.clone()));
     	header.insert("ttl".to_string(), Value::Number(self.ttl.clone()));
     	header.insert("protocol".to_string(), Value::String(self.next_level_protocol.clone()));
