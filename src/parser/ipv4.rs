@@ -37,7 +37,6 @@ impl Ipv4Header {
 			total_length: Number::from(p.get_total_length()),
 			identification: Number::from(p.get_identification()),
 			flags: Value::from(flags),
-			//flags: Number::from(p.get_flags()),
 			fragment_offset: Number::from(p.get_fragment_offset()),
 			ttl: Number::from(p.get_ttl()),
 			next_level_protocol: p.get_next_level_protocol().to_string().to_lowercase(),
@@ -57,7 +56,6 @@ impl Ipv4Header {
     	header.insert("total_length".to_string(), Value::Number(self.total_length.clone()));
     	header.insert("identification".to_string(), Value::Number(self.identification.clone()));
 		header.insert("flags".to_string(), self.flags.clone());
-    	//header.insert("flags.".to_string(), Value::Number(self.flags.clone()));
     	header.insert("fragment_offset".to_string(), Value::Number(self.fragment_offset.clone()));
     	header.insert("ttl".to_string(), Value::Number(self.ttl.clone()));
     	header.insert("protocol".to_string(), Value::String(self.next_level_protocol.clone()));
