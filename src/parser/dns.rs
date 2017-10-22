@@ -1,5 +1,5 @@
 use dns_parser::Packet as DnsPacket;
-use dns_parser::{Opcode, ResponseCode, QueryType, QueryClass};
+use dns_parser::{Opcode, ResponseCode, QueryType, QueryClass, Class, RRData};
 use serde_json::{Value, Map, Number, to_value};
 
 #[derive(Serialize)]
@@ -7,6 +7,14 @@ pub struct DnsQuestion {
 	name: String,
 	qtype: String,
 	qclass: String,
+}
+
+#[derive(Serialize)]
+pub struct DnsResourceRecord {
+	name: String,
+	class: String,
+	ttl: Number,
+	rdata: String,
 }
 
 pub struct DnsHeader {
@@ -19,6 +27,9 @@ pub struct DnsHeader {
 	total_authority_rrs: Number,
 	total_additional_rrs: Number,
 	questions: Value,
+	answer_rrs: Value,
+	authority_rrs: Value,
+	additional_rrs: Value,
 }
 
 impl DnsHeader {
@@ -102,6 +113,78 @@ impl DnsHeader {
 			}
 		}
 
+		let mut answers: Vec<DnsResourceRecord> = Vec::new();
+		if ! p.answers.is_empty() {
+			for a in p.answers.iter() {
+				let answer = DnsResourceRecord {
+					name: a.name.to_string(),
+					class: match a.cls {
+						Class::IN => String::from("IN"),
+						Class::CS => String::from("CS"),
+						Class::CH => String::from("CH"),
+						Class::HS => String::from("HS"),
+					},
+					ttl: Number::from(a.ttl),
+					rdata: match a.data {
+						RRData::CNAME(cname) => cname.to_string(),
+						RRData::NS(ns) => ns.to_string(),
+						RRData::PTR(ptr) => ptr.to_string(),
+						RRData::TXT(ref txt) => txt.clone(),
+						_ => String::from("Unknown"),
+					},
+				};
+				answers.push(answer);
+			}
+		}
+
+		let mut nameservers: Vec<DnsResourceRecord> = Vec::new();
+		if ! p.nameservers.is_empty() {
+			for a in p.nameservers.iter() {
+				let nameserver = DnsResourceRecord {
+					name: a.name.to_string(),
+					class: match a.cls {
+						Class::IN => String::from("IN"),
+						Class::CS => String::from("CS"),
+						Class::CH => String::from("CH"),
+						Class::HS => String::from("HS"),
+					},
+					ttl: Number::from(a.ttl),
+					rdata: match a.data {
+						RRData::CNAME(cname) => cname.to_string(),
+						RRData::NS(ns) => ns.to_string(),
+						RRData::PTR(ptr) => ptr.to_string(),
+						RRData::TXT(ref txt) => txt.clone(),
+						_ => String::from("Unknown"),
+					},
+				};
+				nameservers.push(nameserver);
+			}
+		}
+
+		let mut additionals: Vec<DnsResourceRecord> = Vec::new();
+		if ! p.additional.is_empty() {
+			for a in p.additional.iter() {
+				let additional = DnsResourceRecord {
+					name: a.name.to_string(),
+					class: match a.cls {
+						Class::IN => String::from("IN"),
+						Class::CS => String::from("CS"),
+						Class::CH => String::from("CH"),
+						Class::HS => String::from("HS"),
+					},
+					ttl: Number::from(a.ttl),
+					rdata: match a.data {
+						RRData::CNAME(cname) => cname.to_string(),
+						RRData::NS(ns) => ns.to_string(),
+						RRData::PTR(ptr) => ptr.to_string(),
+						RRData::TXT(ref txt) => txt.clone(),
+						_ => String::from("Unknown"),
+					},
+				};
+				additionals.push(additional);
+			}
+		}
+
 		DnsHeader {
 			id: Number::from(p.header.id),
 			opcode: opcode_string.to_string(),
@@ -112,6 +195,9 @@ impl DnsHeader {
 			total_authority_rrs: Number::from(p.header.nameservers),
 			total_additional_rrs: Number::from(p.header.additional),
 			questions: to_value(questions).unwrap(),
+			answer_rrs: to_value(answers).unwrap(),
+			authority_rrs: to_value(nameservers).unwrap(),
+			additional_rrs: to_value(additionals).unwrap(),
 		}
 	}
 
@@ -127,6 +213,9 @@ impl DnsHeader {
 		header.insert("total_authority_rrs".to_string(), Value::Number(self.total_authority_rrs.clone()));
 		header.insert("total_additional_rrs".to_string(), Value::Number(self.total_additional_rrs.clone()));
 		header.insert("questions".to_string(), self.questions.clone());
+		header.insert("answer_rrs".to_string(), self.answer_rrs.clone());
+		header.insert("authority_rrs".to_string(), self.authority_rrs.clone());
+		header.insert("additional_rrs".to_string(), self.additional_rrs.clone());
 
 		header
 	}
