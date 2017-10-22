@@ -1,11 +1,12 @@
 use dns_parser::Packet as DnsPacket;
-use dns_parser::Opcode;
+use dns_parser::{Opcode, ResponseCode};
 use serde_json::{Value, Map, Number};
 
 pub struct DnsHeader {
 	id: Number,
 	opcode: String,
 	flags: Value,
+	rcode: String,
 	total_questions: Number,
 	total_answer_rrs: Number,
 	total_authority_rrs: Number,
@@ -42,10 +43,22 @@ impl DnsHeader {
 			flags.push("CD");
 		}
 
+		let rcode_number = p.header.response_code;
+		let rcode_string = match rcode_number {
+			ResponseCode::NoError => "NOERROR",
+			ResponseCode::FormatError => "FORMERR",
+			ResponseCode::ServerFailure => "SERVFAIL",
+			ResponseCode::NameError => "NXDOMAIN",
+			ResponseCode::NotImplemented => "NOTIMPL",
+			ResponseCode::Refused => "REFUSED",
+			_ => "UNKNOWN",
+		};
+
 		DnsHeader {
 			id: Number::from(p.header.id),
 			opcode: opcode_string.to_string(),
 			flags: Value::from(flags),
+			rcode: rcode_string.to_string(),
 			total_questions: Number::from(p.header.questions),
 			total_answer_rrs: Number::from(p.header.answers),
 			total_authority_rrs: Number::from(p.header.nameservers),
@@ -59,6 +72,7 @@ impl DnsHeader {
 		header.insert("id".to_string(), Value::Number(self.id.clone()));
 		header.insert("opcode".to_string(), Value::String(self.opcode.clone()));
 		header.insert("flags".to_string(), self.flags.clone());
+		header.insert("rcode".to_string(), Value::String(self.rcode.clone()));
 		header.insert("total_questions".to_string(), Value::Number(self.total_questions.clone()));
 		header.insert("total_answer_rrs".to_string(), Value::Number(self.total_answer_rrs.clone()));
 		header.insert("total_authority_rrs".to_string(), Value::Number(self.total_authority_rrs.clone()));
