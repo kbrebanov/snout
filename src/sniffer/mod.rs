@@ -1,4 +1,4 @@
-use pcap::{Capture, Packet, Error};
+use pcap::{Capture, Packet, Error, Device};
 use pcap::tokio::PacketCodec;
 use serde_json;
 use parser;
@@ -40,4 +40,12 @@ pub fn sniff(interface: &str, promiscuous: bool, snaplen: i32, timeout: i32, fil
     });
 
     core.run(done).unwrap();
+}
+
+pub fn list_interfaces() {
+    let interfaces = Device::list().unwrap();
+
+    for interface in interfaces.iter() {
+        println!("{}", interface.name);
+    }
 }
