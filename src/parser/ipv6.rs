@@ -30,13 +30,34 @@ impl Ipv6Header {
         let mut header = Map::new();
 
         header.insert("version".to_string(), Value::Number(self.version.clone()));
-        header.insert("traffic_class".to_string(), Value::Number(self.traffic_class.clone()));
-        header.insert("flow_label".to_string(), Value::Number(self.flow_label.clone()));
-        header.insert("payload_length".to_string(), Value::Number(self.payload_length.clone()));
-        header.insert("next_header".to_string(), Value::String(self.next_header.clone()));
-        header.insert("hop_limit".to_string(), Value::Number(self.hop_limit.clone()));
-        header.insert("source_address".to_string(), Value::String(self.source.clone()));
-        header.insert("destination_address".to_string(), Value::String(self.destination.clone()));
+        header.insert(
+            "traffic_class".to_string(),
+            Value::Number(self.traffic_class.clone()),
+        );
+        header.insert(
+            "flow_label".to_string(),
+            Value::Number(self.flow_label.clone()),
+        );
+        header.insert(
+            "payload_length".to_string(),
+            Value::Number(self.payload_length.clone()),
+        );
+        header.insert(
+            "next_header".to_string(),
+            Value::String(self.next_header.clone()),
+        );
+        header.insert(
+            "hop_limit".to_string(),
+            Value::Number(self.hop_limit.clone()),
+        );
+        header.insert(
+            "source_address".to_string(),
+            Value::String(self.source.clone()),
+        );
+        header.insert(
+            "destination_address".to_string(),
+            Value::String(self.destination.clone()),
+        );
 
         header
     }

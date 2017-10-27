@@ -20,20 +20,21 @@ impl PacketCodec for JsonDumpCodec {
 pub fn sniff(interface: &str, promiscuous: bool, snaplen: i32, timeout: i32, filter: &str) {
     let mut core = Core::new().unwrap();
     let handle = core.handle();
-    let mut capture = Capture::from_device(interface).unwrap()
-                      	.promisc(promiscuous)
-                        .snaplen(snaplen)
-                        .timeout(timeout)
-                        .open()
-                        .unwrap()
-                        .setnonblock()
-                        .unwrap();
+    let mut capture = Capture::from_device(interface)
+        .unwrap()
+        .promisc(promiscuous)
+        .snaplen(snaplen)
+        .timeout(timeout)
+        .open()
+        .unwrap()
+        .setnonblock()
+        .unwrap();
 
     if !filter.is_empty() {
-    	capture.filter(filter).unwrap();
+        capture.filter(filter).unwrap();
     }
 
-    let s = capture.stream(&handle, JsonDumpCodec{}).unwrap();
+    let s = capture.stream(&handle, JsonDumpCodec {}).unwrap();
     let done = s.for_each(move |s| {
         println!("{}", s);
         Ok(())
