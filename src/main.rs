@@ -1,7 +1,7 @@
 extern crate clap;
 extern crate snout;
 
-use clap::{Arg, App};
+use clap::{App, Arg};
 use snout::sniffer;
 use std::process;
 
@@ -74,28 +74,45 @@ fn main() {
         .get_matches();
 
     if arguments.is_present("list") {
-        sniffer::list_interfaces();
+        match sniffer::list_interfaces() {
+            Err(e) => {
+                eprintln!("Error listing interfaces: {}", e);
+                process::exit(1);
+            }
+            _ => (),
+        }
         process::exit(0);
     }
 
-    let interface = arguments.value_of("interface").unwrap();
-    let mut promiscuous = false;
-    if arguments.is_present("promiscuous") {
-        promiscuous = true;
+    if let Some(interface) = arguments.value_of("interface") {
+        let mut promiscuous = false;
+        if arguments.is_present("promiscuous") {
+            promiscuous = true;
+        }
+        let snaplen: i32 = match arguments.value_of("snaplen").unwrap_or("65535").parse() {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("Error parsing snapshot length: {}", e);
+                process::exit(1);
+            }
+        };
+        let timeout: i32 = match arguments.value_of("timeout").unwrap_or("0").parse() {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("Error parsing timeout: {}", e);
+                process::exit(1);
+            }
+        };
+        let filter: &str = arguments.value_of("filter").unwrap_or("");
+
+        match sniffer::sniff(interface, promiscuous, snaplen, timeout, filter) {
+            Err(e) => {
+                eprintln!("Error sniffing packets: {}", e);
+                process::exit(1);
+            }
+            _ => (),
+        }
+
+        process::exit(0);
     }
-    let snaplen: i32 = arguments
-        .value_of("snaplen")
-        .unwrap_or("65535")
-        .parse()
-        .unwrap();
-    let timeout: i32 = arguments
-        .value_of("timeout")
-        .unwrap_or("0")
-        .parse()
-        .unwrap();
-    let filter: &str = arguments.value_of("filter").unwrap_or("");
-
-    sniffer::sniff(interface, promiscuous, snaplen, timeout, filter);
-
-    process::exit(0);
 }

@@ -1,37 +1,41 @@
 use pnet::packet::udp::UdpPacket;
-use serde_json::{Value, Map, Number};
+use serde_json::{Map, Value, to_value};
+use serde_json::error::Error;
 
 pub struct UdpHeader {
-    source_port: Number,
-    destination_port: Number,
-    length: Number,
-    checksum: Number,
+    source_port: u16,
+    destination_port: u16,
+    length: u16,
+    checksum: u16,
 }
 
 impl UdpHeader {
     pub fn new(p: &UdpPacket) -> UdpHeader {
         UdpHeader {
-            source_port: Number::from(p.get_source()),
-            destination_port: Number::from(p.get_destination()),
-            length: Number::from(p.get_length()),
-            checksum: Number::from(p.get_checksum()),
+            source_port: p.get_source(),
+            destination_port: p.get_destination(),
+            length: p.get_length(),
+            checksum: p.get_checksum(),
         }
     }
 
-    pub fn to_json_map(&self) -> Map<String, Value> {
+    pub fn to_json_map(&self) -> Result<Map<String, Value>, Error> {
         let mut header = Map::new();
 
         header.insert(
-            "source_port".to_string(),
-            Value::Number(self.source_port.clone()),
+            String::from("source_port"),
+            to_value(self.source_port.to_owned())?,
         );
         header.insert(
-            "destination_port".to_string(),
-            Value::Number(self.destination_port.clone()),
+            String::from("destination_port"),
+            to_value(self.destination_port.to_owned())?,
         );
-        header.insert("length".to_string(), Value::Number(self.length.clone()));
-        header.insert("checksum".to_string(), Value::Number(self.checksum.clone()));
+        header.insert(String::from("length"), to_value(self.length.to_owned())?);
+        header.insert(
+            String::from("checksum"),
+            to_value(self.checksum.to_owned())?,
+        );
 
-        header
+        Ok(header)
     }
 }

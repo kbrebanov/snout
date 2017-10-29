@@ -1,5 +1,6 @@
 use pnet::packet::ethernet::EthernetPacket;
-use serde_json::{Value, Map};
+use serde_json::{Map, Value, to_value};
+use serde_json::error::Error;
 
 pub struct EthernetHeader {
     source: String,
@@ -16,16 +17,16 @@ impl EthernetHeader {
         }
     }
 
-    pub fn to_json_map(&self) -> Map<String, Value> {
+    pub fn to_json_map(&self) -> Result<Map<String, Value>, Error> {
         let mut header = Map::new();
 
-        header.insert("source".to_string(), Value::String(self.source.clone()));
+        header.insert(String::from("source"), to_value(self.source.to_owned())?);
         header.insert(
-            "destination".to_string(),
-            Value::String(self.destination.clone()),
+            String::from("destination"),
+            to_value(self.destination.to_owned())?,
         );
-        header.insert("type".to_string(), Value::String(self.ethertype.clone()));
+        header.insert(String::from("type"), to_value(self.ethertype.to_owned())?);
 
-        header
+        Ok(header)
     }
 }

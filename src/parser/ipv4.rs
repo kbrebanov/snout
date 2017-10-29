@@ -1,24 +1,25 @@
-use pnet::packet::ipv4::{Ipv4Packet, Ipv4Flags};
-use serde_json::{Value, Map, Number};
+use pnet::packet::ipv4::{Ipv4Flags, Ipv4Packet};
+use serde_json::{Map, Value, to_value};
+use serde_json::error::Error;
 
-pub struct Ipv4Header {
-    version: Number,
-    ihl: Number,
-    dscp: Number,
-    ecn: Number,
-    total_length: Number,
-    identification: Number,
-    flags: Value,
-    fragment_offset: Number,
-    ttl: Number,
+pub struct Ipv4Header<'a> {
+    version: u8,
+    ihl: u8,
+    dscp: u8,
+    ecn: u8,
+    total_length: u16,
+    identification: u16,
+    flags: Vec<&'a str>,
+    fragment_offset: u16,
+    ttl: u8,
     next_level_protocol: String,
-    checksum: Number,
+    checksum: u16,
     source: String,
     destination: String,
 }
 
-impl Ipv4Header {
-    pub fn new(p: &Ipv4Packet) -> Ipv4Header {
+impl<'a> Ipv4Header<'a> {
+    pub fn new(p: &Ipv4Packet) -> Ipv4Header<'a> {
         let flags_number = p.get_flags();
         let mut flags: Vec<&str> = Vec::new();
 
@@ -30,57 +31,60 @@ impl Ipv4Header {
         }
 
         Ipv4Header {
-            version: Number::from(p.get_version()),
-            ihl: Number::from(p.get_header_length()),
-            dscp: Number::from(p.get_dscp()),
-            ecn: Number::from(p.get_ecn()),
-            total_length: Number::from(p.get_total_length()),
-            identification: Number::from(p.get_identification()),
-            flags: Value::from(flags),
-            fragment_offset: Number::from(p.get_fragment_offset()),
-            ttl: Number::from(p.get_ttl()),
+            version: p.get_version(),
+            ihl: p.get_header_length(),
+            dscp: p.get_dscp(),
+            ecn: p.get_ecn(),
+            total_length: p.get_total_length(),
+            identification: p.get_identification(),
+            flags: flags,
+            fragment_offset: p.get_fragment_offset(),
+            ttl: p.get_ttl(),
             next_level_protocol: p.get_next_level_protocol().to_string().to_lowercase(),
-            checksum: Number::from(p.get_checksum()),
+            checksum: p.get_checksum(),
             source: p.get_source().to_string(),
             destination: p.get_destination().to_string(),
         }
     }
 
-    pub fn to_json_map(&self) -> Map<String, Value> {
+    pub fn to_json_map(&self) -> Result<Map<String, Value>, Error> {
         let mut header = Map::new();
 
-        header.insert("version".to_string(), Value::Number(self.version.clone()));
-        header.insert("ihl".to_string(), Value::Number(self.ihl.clone()));
-        header.insert("dscp".to_string(), Value::Number(self.dscp.clone()));
-        header.insert("ecn".to_string(), Value::Number(self.ecn.clone()));
+        header.insert(String::from("version"), to_value(self.version.to_owned())?);
+        header.insert(String::from("ihl"), to_value(self.ihl.to_owned())?);
+        header.insert(String::from("dscp"), to_value(self.dscp.to_owned())?);
+        header.insert(String::from("ecn"), to_value(self.ecn.to_owned())?);
         header.insert(
-            "total_length".to_string(),
-            Value::Number(self.total_length.clone()),
+            String::from("total_length"),
+            to_value(self.total_length.to_owned())?,
         );
         header.insert(
-            "identification".to_string(),
-            Value::Number(self.identification.clone()),
+            String::from("identification"),
+            to_value(self.identification.to_owned())?,
         );
-        header.insert("flags".to_string(), self.flags.clone());
+        header.insert(String::from("flags"), to_value(self.flags.to_owned())?);
         header.insert(
-            "fragment_offset".to_string(),
-            Value::Number(self.fragment_offset.clone()),
+            String::from("fragment_offset"),
+            to_value(self.fragment_offset.to_owned())?,
         );
-        header.insert("ttl".to_string(), Value::Number(self.ttl.clone()));
+        header.insert(String::from("ttl"), to_value(self.ttl.to_owned())?);
         header.insert(
-            "protocol".to_string(),
-            Value::String(self.next_level_protocol.clone()),
-        );
-        header.insert("checksum".to_string(), Value::Number(self.checksum.clone()));
-        header.insert(
-            "source_address".to_string(),
-            Value::String(self.source.clone()),
+            String::from("protocol"),
+            to_value(self.next_level_protocol.to_owned())?,
         );
         header.insert(
-            "destination_address".to_string(),
-            Value::String(self.destination.clone()),
+            String::from("checksum"),
+            to_value(self.checksum.to_owned())?,
+        );
+        header.insert(
+            String::from("source_address"),
+            to_value(self.source.to_owned())?,
+        );
+        header.insert(
+            String::from("destination_address"),
+            to_value(self.destination.to_owned())?,
         );
 
-        header
+        Ok(header)
     }
 }

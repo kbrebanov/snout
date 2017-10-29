@@ -1,6 +1,7 @@
 use dns_parser::Packet as DnsPacket;
-use dns_parser::{Opcode, ResponseCode, QueryType, QueryClass, Class, RRData, ResourceRecord};
-use serde_json::{Value, Map, Number, to_value};
+use dns_parser::{Class, Opcode, QueryClass, QueryType, ResourceRecord, ResponseCode, RRData};
+use serde_json::{Map, Value, to_value};
+use serde_json::error::Error;
 
 #[derive(Serialize)]
 pub struct DnsQuestion {
@@ -13,27 +14,27 @@ pub struct DnsQuestion {
 pub struct DnsResourceRecord {
     name: String,
     class: String,
-    ttl: Number,
+    ttl: u32,
     rdata: String,
 }
 
-pub struct DnsHeader {
-    id: Number,
+pub struct DnsHeader<'a> {
+    id: u16,
     opcode: String,
-    flags: Value,
+    flags: Vec<&'a str>,
     rcode: String,
-    total_questions: Number,
-    total_answer_rrs: Number,
-    total_authority_rrs: Number,
-    total_additional_rrs: Number,
-    questions: Value,
-    answer_rrs: Value,
-    authority_rrs: Value,
-    additional_rrs: Value,
+    total_questions: u16,
+    total_answer_rrs: u16,
+    total_authority_rrs: u16,
+    total_additional_rrs: u16,
+    questions: Vec<DnsQuestion>,
+    answer_rrs: Vec<DnsResourceRecord>,
+    authority_rrs: Vec<DnsResourceRecord>,
+    additional_rrs: Vec<DnsResourceRecord>,
 }
 
-impl DnsHeader {
-    pub fn new(p: &DnsPacket) -> DnsHeader {
+impl<'a> DnsHeader<'a> {
+    pub fn new(p: &DnsPacket) -> DnsHeader<'a> {
         let opcode_number = p.header.opcode;
         let opcode_string = match opcode_number {
             Opcode::StandardQuery => "QUERY",
@@ -120,50 +121,56 @@ impl DnsHeader {
         let additionals = DnsHeader::parse_rr(&p.additional);
 
         DnsHeader {
-            id: Number::from(p.header.id),
-            opcode: opcode_string.to_string(),
-            flags: Value::from(flags),
-            rcode: rcode_string.to_string(),
-            total_questions: Number::from(p.header.questions),
-            total_answer_rrs: Number::from(p.header.answers),
-            total_authority_rrs: Number::from(p.header.nameservers),
-            total_additional_rrs: Number::from(p.header.additional),
-            questions: to_value(questions).unwrap(),
-            answer_rrs: to_value(answers).unwrap(),
-            authority_rrs: to_value(nameservers).unwrap(),
-            additional_rrs: to_value(additionals).unwrap(),
+            id: p.header.id,
+            opcode: String::from(opcode_string),
+            flags: flags,
+            rcode: String::from(rcode_string),
+            total_questions: p.header.questions,
+            total_answer_rrs: p.header.answers,
+            total_authority_rrs: p.header.nameservers,
+            total_additional_rrs: p.header.additional,
+            questions: questions,
+            answer_rrs: answers,
+            authority_rrs: nameservers,
+            additional_rrs: additionals,
         }
     }
 
-    pub fn to_json_map(&self) -> Map<String, Value> {
+    pub fn to_json_map(&self) -> Result<Map<String, Value>, Error> {
         let mut header = Map::new();
 
-        header.insert("id".to_string(), Value::Number(self.id.clone()));
-        header.insert("opcode".to_string(), Value::String(self.opcode.clone()));
-        header.insert("flags".to_string(), self.flags.clone());
-        header.insert("rcode".to_string(), Value::String(self.rcode.clone()));
+        header.insert(String::from("id"), to_value(self.id.to_owned())?);
+        header.insert(String::from("opcode"), to_value(self.opcode.to_owned())?);
+        header.insert(String::from("flags"), to_value(self.flags.to_owned())?);
+        header.insert(String::from("rcode"), to_value(self.rcode.to_owned())?);
         header.insert(
-            "total_questions".to_string(),
-            Value::Number(self.total_questions.clone()),
+            String::from("total_questions"),
+            to_value(self.total_questions.to_owned())?,
         );
         header.insert(
-            "total_answer_rrs".to_string(),
-            Value::Number(self.total_answer_rrs.clone()),
+            String::from("total_answer_rrs"),
+            to_value(self.total_answer_rrs.to_owned())?,
         );
         header.insert(
-            "total_authority_rrs".to_string(),
-            Value::Number(self.total_authority_rrs.clone()),
+            String::from("total_authority_rrs"),
+            to_value(self.total_authority_rrs.to_owned())?,
         );
         header.insert(
-            "total_additional_rrs".to_string(),
-            Value::Number(self.total_additional_rrs.clone()),
+            String::from("total_additional_rrs"),
+            to_value(self.total_additional_rrs.to_owned())?,
         );
-        header.insert("questions".to_string(), self.questions.clone());
-        header.insert("answer_rrs".to_string(), self.answer_rrs.clone());
-        header.insert("authority_rrs".to_string(), self.authority_rrs.clone());
-        header.insert("additional_rrs".to_string(), self.additional_rrs.clone());
+        header.insert(String::from("questions"), to_value(&self.questions)?);
+        header.insert(String::from("answer_rrs"), to_value(&self.answer_rrs)?);
+        header.insert(
+            String::from("authority_rrs"),
+            to_value(&self.authority_rrs)?,
+        );
+        header.insert(
+            String::from("additional_rrs"),
+            to_value(&self.additional_rrs)?,
+        );
 
-        header
+        Ok(header)
     }
 
     fn parse_rr(rrs: &Vec<ResourceRecord>) -> Vec<DnsResourceRecord> {
@@ -178,7 +185,7 @@ impl DnsHeader {
                         Class::CH => String::from("CH"),
                         Class::HS => String::from("HS"),
                     },
-                    ttl: Number::from(rr.ttl),
+                    ttl: rr.ttl,
                     rdata: match rr.data {
                         RRData::CNAME(cname) => cname.to_string(),
                         RRData::NS(ns) => ns.to_string(),

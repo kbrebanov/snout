@@ -1,20 +1,21 @@
-use pnet::packet::tcp::{TcpPacket, TcpFlags};
-use serde_json::{Value, Map, Number};
+use pnet::packet::tcp::{TcpFlags, TcpPacket};
+use serde_json::{Map, Value, to_value};
+use serde_json::error::Error;
 
-pub struct TcpHeader {
-    source_port: Number,
-    destination_port: Number,
-    sequence_number: Number,
-    ack_number: Number,
-    data_offset: Number,
-    flags: Value,
-    window_size: Number,
-    checksum: Number,
-    urgent_pointer: Number,
+pub struct TcpHeader<'a> {
+    source_port: u16,
+    destination_port: u16,
+    sequence_number: u32,
+    ack_number: u32,
+    data_offset: u8,
+    flags: Vec<&'a str>,
+    window_size: u16,
+    checksum: u16,
+    urgent_pointer: u16,
 }
 
-impl TcpHeader {
-    pub fn new(p: &TcpPacket) -> TcpHeader {
+impl<'a> TcpHeader<'a> {
+    pub fn new(p: &TcpPacket) -> TcpHeader<'a> {
         let flags_number = p.get_flags();
         let mut flags: Vec<&str> = Vec::new();
 
@@ -47,52 +48,55 @@ impl TcpHeader {
         }
 
         TcpHeader {
-            source_port: Number::from(p.get_source()),
-            destination_port: Number::from(p.get_destination()),
-            sequence_number: Number::from(p.get_sequence()),
-            ack_number: Number::from(p.get_acknowledgement()),
-            data_offset: Number::from(p.get_data_offset()),
-            flags: Value::from(flags),
-            window_size: Number::from(p.get_window()),
-            checksum: Number::from(p.get_checksum()),
-            urgent_pointer: Number::from(p.get_urgent_ptr()),
+            source_port: p.get_source(),
+            destination_port: p.get_destination(),
+            sequence_number: p.get_sequence(),
+            ack_number: p.get_acknowledgement(),
+            data_offset: p.get_data_offset(),
+            flags: flags,
+            window_size: p.get_window(),
+            checksum: p.get_checksum(),
+            urgent_pointer: p.get_urgent_ptr(),
         }
     }
 
-    pub fn to_json_map(&self) -> Map<String, Value> {
+    pub fn to_json_map(&self) -> Result<Map<String, Value>, Error> {
         let mut header = Map::new();
 
         header.insert(
-            "source_port".to_string(),
-            Value::Number(self.source_port.clone()),
+            String::from("source_port"),
+            to_value(self.source_port.to_owned())?,
         );
         header.insert(
-            "destination_port".to_string(),
-            Value::Number(self.destination_port.clone()),
+            String::from("destination_port"),
+            to_value(self.destination_port.to_owned())?,
         );
         header.insert(
-            "sequence_number".to_string(),
-            Value::Number(self.sequence_number.clone()),
+            String::from("sequence_number"),
+            to_value(self.sequence_number.to_owned())?,
         );
         header.insert(
-            "ack_number".to_string(),
-            Value::Number(self.ack_number.clone()),
+            String::from("ack_number"),
+            to_value(self.ack_number.to_owned())?,
         );
         header.insert(
-            "data_offset".to_string(),
-            Value::Number(self.data_offset.clone()),
+            String::from("data_offset"),
+            to_value(self.data_offset.to_owned())?,
         );
-        header.insert("flags".to_string(), self.flags.clone());
+        header.insert(String::from("flags"), to_value(self.flags.to_owned())?);
         header.insert(
-            "window_size".to_string(),
-            Value::Number(self.window_size.clone()),
+            String::from("window_size"),
+            to_value(self.window_size.to_owned())?,
         );
-        header.insert("checksum".to_string(), Value::Number(self.checksum.clone()));
         header.insert(
-            "urgent_pointer".to_string(),
-            Value::Number(self.urgent_pointer.clone()),
+            String::from("checksum"),
+            to_value(self.checksum.to_owned())?,
+        );
+        header.insert(
+            String::from("urgent_pointer"),
+            to_value(self.urgent_pointer.to_owned())?,
         );
 
-        header
+        Ok(header)
     }
 }
