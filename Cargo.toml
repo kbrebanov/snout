@@ -2,6 +2,8 @@
 name = "snout"
 version = "0.3.0"
 authors = ["Kevin Brebanov <kevin.brebanov@gmail.com>"]
+description = "Network packet sniffer that outputs packet headers in JSON format."
+license = "MIT"
 
 [dependencies]
 clap = "2.26.2"
